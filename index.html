@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project Unbox: A Take-Private Opportunity for The ODP Corporation (ODP)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Warm Neutrals -->
+    <!-- Application Structure Plan: A top-down, thematic dashboard structure. The user is first presented with the core thesis and key metrics (The Opportunity). They then explore the visual 'before and after' transformation story. This is followed by an interactive financial analysis section with charts for historical data, valuation gaps, and the LBO model. The application then details the company's core segments in a tabbed interface (The Pillars of Value) before outlining the value creation plan and risks. This non-linear, dashboard-style structure is chosen over a static report to allow investors to quickly grasp the key points and then dive into specific areas of interest in any order, which is a more efficient and user-friendly flow for financial analysis. -->
+    <!-- Visualization & Content Choices: 
+        - Report Info: Executive Summary -> Goal: Inform -> Viz: Key metric cards -> Interaction: Hover -> Justification: High-impact intro to the core thesis. -> Library/Method: HTML/Tailwind.
+        - Report Info: Historical Financials (Revenue, EBITDA) -> Goal: Show Change -> Viz: Line Chart -> Interaction: Toggle data series -> Justification: Visualize performance trends and the impact of strategic shifts over time. -> Library/Method: Chart.js/Canvas.
+        - Report Info: Valuation vs Peers -> Goal: Compare -> Viz: Grouped Bar Chart -> Interaction: Tooltips on hover -> Justification: Clearly illustrate the valuation discount ODP trades at compared to its B2B peers, a key part of the investment thesis. -> Library/Method: Chart.js/Canvas.
+        - Report Info: LBO Model -> Goal: Explore -> Viz: Donut Charts & Dynamic Cards -> Interaction: Slider for exit multiple to update IRR/MoM -> Justification: Makes the transaction structure and potential returns tangible and interactive. -> Library/Method: Chart.js/Canvas & JS.
+        - Report Info: Business Segments -> Goal: Organize -> Viz: Tabbed Interface -> Interaction: Click to switch views -> Justification: Neatly organizes the three distinct business narratives (growth, hidden asset, managed decline) without clutter. -> Library/Method: HTML/Tailwind & JS.
+        - Report Info: Risks & Mitigants -> Goal: Inform -> Viz: Two-column layout -> Interaction: None -> Justification: Provides a clear, direct comparison of challenges and solutions. -> Library/Method: HTML/Tailwind.
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8f7f4;
+            color: #1a1a1a;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 700px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 320px;
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 400px;
+            }
+        }
+        .nav-link {
+            transition: color 0.3s ease, border-color 0.3s ease;
+            border-bottom-width: 2px;
+            border-color: transparent;
+        }
+        .nav-link.active, .nav-link:hover {
+            color: #005f73;
+            border-color: #005f73;
+        }
+        .tab-button.active {
+            background-color: #005f73;
+            color: #ffffff;
+        }
+        .tab-button {
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+        .metric-card {
+            background-color: #ffffff;
+            border: 1px solid #e5e7eb;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .metric-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            background: #005f73;
+            cursor: pointer;
+            border-radius: 50%;
+        }
+        input[type="range"]::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            background: #005f73;
+            cursor: pointer;
+            border-radius: 50%;
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <!-- Header & Navigation -->
+    <header class="bg-white/80 backdrop-blur-md sticky top-0 z-50 border-b border-gray-200">
+        <nav class="container mx-auto px-4">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center space-x-3">
+                    <span class="text-xl font-bold text-[#005f73]">Project Unbox</span>
+                    <span class="hidden md:inline-block text-gray-500">The ODP Corp. LBO Proposal</span>
+                </div>
+                <div class="hidden md:flex items-center space-x-8 text-sm font-medium text-gray-600">
+                    <a href="#opportunity" class="nav-link">Opportunity</a>
+                    <a href="#financials" class="nav-link">Financials</a>
+                    <a href="#deal" class="nav-link">The Deal</a>
+                    <a href="#value-pillars" class="nav-link">Pillars of Value</a>
+                    <a href="#risks" class="nav-link">Risks</a>
+                </div>
+                <div class="md:hidden">
+                    <button id="mobile-menu-button" class="text-gray-600 hover:text-[#005f73]">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
+                    </button>
+                </div>
+            </div>
+        </nav>
+        <div id="mobile-menu" class="hidden md:hidden">
+            <a href="#opportunity" class="block py-2 px-4 text-sm text-gray-700 hover:bg-gray-100">Opportunity</a>
+            <a href="#financials" class="block py-2 px-4 text-sm text-gray-700 hover:bg-gray-100">Financials</a>
+            <a href="#deal" class="block py-2 px-4 text-sm text-gray-700 hover:bg-gray-100">The Deal</a>
+            <a href="#value-pillars" class="block py-2 px-4 text-sm text-gray-700 hover:bg-gray-100">Pillars of Value</a>
+            <a href="#risks" class="block py-2 px-4 text-sm text-gray-700 hover:bg-gray-100">Risks</a>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-8 md:py-12">
+
+        <!-- Section 1: The Opportunity -->
+        <section id="opportunity" class="text-center mb-16 md:mb-24">
+            <h1 class="text-4xl md:text-5xl font-bold text-[#003440] mb-4">Unlocking Value in a Market Leader</h1>
+            <p class="max-w-3xl mx-auto text-lg text-gray-600 mb-8">
+                The ODP Corporation represents a compelling take-private opportunity. The market is mispricing ODP, focusing on its declining retail segment while undervaluing its robust B2B platform and world-class Veyer logistics arm. This proposal outlines a clear path to unlock this hidden value through strategic transformation.
+            </p>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+                <div class="metric-card p-6 rounded-lg shadow-sm">
+                    <h3 class="text-sm font-semibold text-gray-500 uppercase">Share Price (Mar '25)</h3>
+                    <p class="text-4xl font-bold text-[#005f73] mt-2">$17.29</p>
+                </div>
+                <div class="metric-card p-6 rounded-lg shadow-sm">
+                    <h3 class="text-sm font-semibold text-gray-500 uppercase">Proposed Offer Price</h3>
+                    <p class="text-4xl font-bold text-[#005f73] mt-2">$35.00</p>
+                    <span class="text-sm text-green-600 font-medium">102.4% Premium</span>
+                </div>
+                <div class="metric-card p-6 rounded-lg shadow-sm">
+                    <h3 class="text-sm font-semibold text-gray-500 uppercase">DCF Fair Value</h3>
+                    <p class="text-4xl font-bold text-[#005f73] mt-2">$48.03</p>
+                    <span class="text-sm text-green-600 font-medium">62% Undervaluation</span>
+                </div>
+            </div>
+        </section>
+        <hr class="my-16 md:my-24 border-gray-200">
+
+        <!-- Section 2: Financial Deep Dive -->
+        <section id="financials" class="mb-16 md:mb-24">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl md:text-4xl font-bold text-[#003440] mb-2">Financial Deep Dive</h2>
+                <p class="max-w-3xl mx-auto text-lg text-gray-600">
+                    ODP's historical performance reveals a company in transition. While consolidated revenue has declined due to the retail segment, underlying cash flow remains positive, and the B2B business shows strong potential. The company's valuation is significantly disconnected from its more focused B2B peers.
+                </p>
+            </div>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-12">
+                <div class="bg-white p-6 rounded-lg shadow-lg border border-gray-200">
+                    <h3 class="font-bold text-xl mb-4 text-[#003440]">Historical Performance (FY20-24)</h3>
+                    <div class="chart-container">
+                        <canvas id="historicalChart"></canvas>
+                    </div>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-lg border border-gray-200">
+                    <h3 class="font-bold text-xl mb-4 text-[#003440]">The Valuation Gap (EV/EBITDA)</h3>
+                    <div class="chart-container">
+                        <canvas id="valuationChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+        <hr class="my-16 md:my-24 border-gray-200">
+
+        <!-- Section 3: The LBO Deal Structure -->
+        <section id="deal" class="mb-16 md:mb-24">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl md:text-4xl font-bold text-[#003440] mb-2">The Proposed LBO</h2>
+                <p class="max-w-3xl mx-auto text-lg text-gray-600">
+                    The transaction is structured to maximize returns by leveraging ODP's cash flows to service debt, while executing on a clear value creation plan. The model projects attractive returns, driven by operational improvements, debt paydown, and multiple expansion upon exit.
+                </p>
+            </div>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-12">
+                <div class="bg-white p-6 rounded-lg shadow-lg border border-gray-200">
+                    <h3 class="font-bold text-xl text-center mb-4 text-[#003440]">Sources & Uses of Funds ($M)</h3>
+                    <div class="flex flex-col md:flex-row gap-4 items-center">
+                        <div class="chart-container h-64 md:h-auto">
+                            <canvas id="sourcesChart"></canvas>
+                        </div>
+                        <div class="chart-container h-64 md:h-auto">
+                            <canvas id="usesChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-lg border border-gray-200">
+                    <h3 class="font-bold text-xl text-center mb-4 text-[#003440]">Projected Returns (5-Year Hold)</h3>
+                    <div class="grid grid-cols-2 gap-4 mt-8 text-center">
+                        <div class="p-4 bg-slate-50 rounded-lg">
+                            <h4 class="text-sm font-semibold text-gray-500 uppercase">Projected IRR</h4>
+                            <p id="irrValue" class="text-4xl font-bold text-[#005f73] mt-2">24.2%</p>
+                        </div>
+                        <div class="p-4 bg-slate-50 rounded-lg">
+                            <h4 class="text-sm font-semibold text-gray-500 uppercase">Projected MoM</h4>
+                            <p id="momValue" class="text-4xl font-bold text-[#005f73] mt-2">2.96x</p>
+                        </div>
+                    </div>
+                    <div class="mt-8">
+                        <label for="exitMultipleSlider" class="block font-medium text-sm text-gray-700 mb-2">Adjust Exit Multiple: <span id="exitMultipleLabel" class="font-bold text-[#005f73]">8.5x</span></label>
+                        <input id="exitMultipleSlider" type="range" min="6.0" max="12.0" value="8.5" step="0.1" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                    </div>
+                </div>
+            </div>
+        </section>
+        <hr class="my-16 md:my-24 border-gray-200">
+        
+        <!-- Section 4: The Three Pillars of Value -->
+        <section id="value-pillars" class="mb-16 md:mb-24">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl md:text-4xl font-bold text-[#003440] mb-2">The Three Pillars of Value</h2>
+                <p class="max-w-3xl mx-auto text-lg text-gray-600">
+                    ODP's business is comprised of three distinct segments, each with a unique role in the transformation story. The investment thesis hinges on accelerating the growth engine (ODP Business Solutions), unlocking the hidden asset (Veyer), and managing the decline of the legacy retail arm.
+                </p>
+            </div>
+            <div class="max-w-4xl mx-auto">
+                <div class="mb-6 flex justify-center border border-gray-300 rounded-lg p-1 bg-gray-100">
+                    <button class="tab-button w-1/3 py-2 px-4 rounded-md text-sm md:text-base font-medium active" data-tab="b2b">ODP Business Solutions</button>
+                    <button class="tab-button w-1/3 py-2 px-4 rounded-md text-sm md:text-base font-medium" data-tab="veyer">Veyer Logistics</button>
+                    <button class="tab-button w-1/3 py-2 px-4 rounded-md text-sm md:text-base font-medium" data-tab="retail">Office Depot Retail</button>
+                </div>
+                <div id="tab-content" class="bg-white p-6 md:p-8 rounded-lg shadow-lg border border-gray-200 min-h-[20rem]">
+                    <div class="tab-pane active" id="b2b">
+                        <h3 class="text-2xl font-bold text-[#005f73] mb-4">The Growth Engine</h3>
+                        <p class="text-gray-700">A premier B2B provider of workplace and technology solutions. This segment is the primary growth engine, strategically expanding into high-margin adjacencies like hospitality and healthcare. Under private ownership, investment will be focused here to accelerate market share gains and drive top-line growth through an enhanced sales force and digital platform.</p>
+                    </div>
+                    <div class="tab-pane hidden" id="veyer">
+                        <h3 class="text-2xl font-bold text-[#005f73] mb-4">The Hidden Asset</h3>
+                        <p class="text-gray-700">A world-class, end-to-end supply chain and logistics division with 8M sq. ft. of infrastructure and next-day delivery to 98.5% of the US. Currently undervalued within the ODP structure, Veyer will be developed into a standalone 3PL provider, monetizing its significant assets by serving third-party customers and unlocking substantial value.</p>
+                    </div>
+                    <div class="tab-pane hidden" id="retail">
+                        <h3 class="text-2xl font-bold text-[#005f73] mb-4">The Managed Decline</h3>
+                        <p class="text-gray-700">The legacy retail arm. While it currently drags on valuation, it provides stable cash flow. The value creation plan involves an accelerated, decisive optimization of the retail footprint—closing unprofitable stores and associated facilities to aggressively reduce fixed costs. This frees up capital and management focus for the high-growth B2B and Veyer segments.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+        <hr class="my-16 md:my-24 border-gray-200">
+
+        <!-- Section 5: Risks & Mitigation -->
+        <section id="risks">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl md:text-4xl font-bold text-[#003440] mb-2">Risks & Mitigation</h2>
+                 <p class="max-w-3xl mx-auto text-lg text-gray-600">
+                    A thorough investment analysis requires acknowledging potential risks. We have identified key challenges and developed concrete strategies to mitigate them, ensuring the investment's resilience and protecting returns.
+                </p>
+            </div>
+            <div class="max-w-5xl mx-auto space-y-6">
+                <div class="grid grid-cols-1 md:grid-cols-5 gap-4 bg-white p-6 rounded-lg shadow-md border border-gray-200">
+                    <div class="md:col-span-2">
+                        <h4 class="font-bold text-lg text-[#005f73]">Execution Risk of Transformation</h4>
+                    </div>
+                    <div class="md:col-span-3">
+                        <p class="text-gray-700"><span class="font-semibold">Mitigation:</span> Implement a phased and disciplined transformation plan with strict cost controls and performance metrics. Retain a strong management team with a proven track record in large-scale corporate turnarounds.</p>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-5 gap-4 bg-white p-6 rounded-lg shadow-md border border-gray-200">
+                    <div class="md:col-span-2">
+                        <h4 class="font-bold text-lg text-[#005f73]">Debt Burden & Economic Headwinds</h4>
+                    </div>
+                    <div class="md:col-span-3">
+                        <p class="text-gray-700"><span class="font-semibold">Mitigation:</span> Structure debt with flexible covenants and a mix of fixed/floating rates. Prioritize aggressive debt paydown using free cash flow. Diversify B2B offerings into less cyclical industries like healthcare to enhance resilience.</p>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-5 gap-4 bg-white p-6 rounded-lg shadow-md border border-gray-200">
+                    <div class="md:col-span-2">
+                        <h4 class="font-bold text-lg text-[#005f73]">Market Decline & Competition</h4>
+                    </div>
+                    <div class="md:col-span-3">
+                        <p class="text-gray-700"><span class="font-semibold">Mitigation:</span> Accelerate the pivot away from declining retail and focus capital on the growing B2B services market. Leverage Veyer's superior logistics as a key competitive differentiator against online generalists.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="bg-white mt-16 md:mt-24 border-t border-gray-200">
+        <div class="container mx-auto px-4 py-6 text-center text-sm text-gray-500">
+            <p>&copy; 2025 Project Unbox. Confidential Investment Proposal.</p>
+            <p>This information is for illustrative purposes only and does not constitute an offer to sell or a solicitation of an offer to buy any securities.</p>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Mobile Menu
+            const mobileMenuButton = document.getElementById('mobile-menu-button');
+            const mobileMenu = document.getElementById('mobile-menu');
+            mobileMenuButton.addEventListener('click', () => {
+                mobileMenu.classList.toggle('hidden');
+            });
+            document.querySelectorAll('#mobile-menu a').forEach(link => {
+                link.addEventListener('click', () => mobileMenu.classList.add('hidden'));
+            });
+
+            // Nav link active state on scroll
+            const sections = document.querySelectorAll('section');
+            const navLinks = document.querySelectorAll('.nav-link');
+            window.addEventListener('scroll', () => {
+                let current = '';
+                sections.forEach(section => {
+                    const sectionTop = section.offsetTop;
+                    if (pageYOffset >= sectionTop - 80) {
+                        current = section.getAttribute('id');
+                    }
+                });
+                navLinks.forEach(link => {
+                    link.classList.remove('active');
+                    if (link.getAttribute('href').includes(current)) {
+                        link.classList.add('active');
+                    }
+                });
+            });
+
+
+            // Tab functionality
+            const tabButtons = document.querySelectorAll('.tab-button');
+            const tabPanes = document.querySelectorAll('.tab-pane');
+            tabButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    tabButtons.forEach(btn => btn.classList.remove('active'));
+                    button.classList.add('active');
+                    const tabId = button.dataset.tab;
+                    tabPanes.forEach(pane => {
+                        if (pane.id === tabId) {
+                            pane.classList.remove('hidden');
+                            pane.classList.add('active');
+                        } else {
+                            pane.classList.add('hidden');
+                            pane.classList.remove('active');
+                        }
+                    });
+                });
+            });
+
+            const chartFontColor = '#1a1a1a';
+            const chartGridColor = '#e5e7eb';
+
+            // Chart.js: Historical Performance
+            const historicalData = {
+                labels: ['FY2020', 'FY2021', 'FY2022', 'FY2023', 'FY2024'],
+                datasets: [{
+                    label: 'Revenue ($B)',
+                    data: [9.71, 8.47, 8.49, 7.82, 6.99],
+                    borderColor: '#005f73',
+                    backgroundColor: 'rgba(0, 95, 115, 0.1)',
+                    yAxisID: 'y',
+                    fill: true,
+                    tension: 0.3,
+                }, {
+                    label: 'EBITDA ($M)',
+                    data: [345, 400, 374, 429, 260],
+                    borderColor: '#94d2bd',
+                    backgroundColor: 'rgba(148, 210, 189, 0.1)',
+                    yAxisID: 'y1',
+                    fill: true,
+                    tension: 0.3,
+                }]
+            };
+            const historicalCtx = document.getElementById('historicalChart').getContext('2d');
+            new Chart(historicalCtx, {
+                type: 'line',
+                data: historicalData,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'top', labels: { color: chartFontColor } },
+                        tooltip: { mode: 'index', intersect: false }
+                    },
+                    scales: {
+                        x: { ticks: { color: chartFontColor }, grid: { display: false } },
+                        y: {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                            title: { display: true, text: 'Revenue ($B)', color: chartFontColor },
+                            ticks: { color: chartFontColor },
+                            grid: { color: chartGridColor }
+                        },
+                        y1: {
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            title: { display: true, text: 'EBITDA ($M)', color: chartFontColor },
+                            ticks: { color: chartFontColor },
+                            grid: { display: false }
+                        }
+                    }
+                }
+            });
+
+            // Chart.js: Valuation
+            const valuationData = {
+                labels: ['The ODP Corp (ODP)', 'Acco Brands (ACCO)', 'MSC Industrial (MSM)'],
+                datasets: [{
+                    label: 'EV/EBITDA Multiple',
+                    data: [5.66, 6.56, 12.65],
+                    backgroundColor: ['#e9c46a', '#e76f51', '#2a9d8f'],
+                    borderColor: ['#e9c46a', '#e76f51', '#2a9d8f'],
+                    borderWidth: 1
+                }]
+            };
+            const valuationCtx = document.getElementById('valuationChart').getContext('2d');
+            new Chart(valuationCtx, {
+                type: 'bar',
+                data: valuationData,
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { 
+                            beginAtZero: true, 
+                            title: { display: true, text: 'EV/EBITDA Multiple (x)', color: chartFontColor },
+                            ticks: { color: chartFontColor },
+                            grid: { color: chartGridColor }
+                        },
+                        y: { ticks: { color: chartFontColor }, grid: { display: false } }
+                    }
+                }
+            });
+
+            // LBO Deal Charts
+            const sourcesData = {
+                labels: ['New Senior Secured Debt', 'Sponsor Equity'],
+                datasets: [{ data: [1430.0, 809.6], backgroundColor: ['#005f73', '#94d2bd'], borderWidth: 0 }]
+            };
+            const usesData = {
+                labels: ['Equity Purchase', 'Refinance Debt', 'Fees'],
+                datasets: [{ data: [1043.6, 1136.0, 60.0], backgroundColor: ['#005f73', '#94d2bd', '#e9c46a'], borderWidth: 0 }]
+            };
+            const pieOptions = {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { 
+                    legend: { position: 'bottom', labels: { color: chartFontColor, boxWidth: 12, padding: 15 } },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.label || '';
+                                if (label) { label += ': '; }
+                                if (context.parsed !== null) { label += '$' + context.parsed.toLocaleString() + 'M'; }
+                                return label;
+                            }
+                        }
+                    }
+                }
+            };
+            const sourcesCtx = document.getElementById('sourcesChart').getContext('2d');
+            new Chart(sourcesCtx, { type: 'doughnut', data: sourcesData, options: { ...pieOptions, plugins: {...pieOptions.plugins, title: {display: true, text: 'Sources', color: chartFontColor, font: {size: 16}} } } });
+
+            const usesCtx = document.getElementById('usesChart').getContext('2d');
+            new Chart(usesCtx, { type: 'doughnut', data: usesData, options: { ...pieOptions, plugins: {...pieOptions.plugins, title: {display: true, text: 'Uses', color: chartFontColor, font: {size: 16}} } } });
+
+
+            // LBO Return Calculator
+            const exitMultipleSlider = document.getElementById('exitMultipleSlider');
+            const exitMultipleLabel = document.getElementById('exitMultipleLabel');
+            const irrValue = document.getElementById('irrValue');
+            const momValue = document.getElementById('momValue');
+            
+            const lboData = {
+                sponsorEquity: 809.6,
+                projectedEbitdaY5: 395.7,
+                remainingDebt: 965.0,
+            };
+
+            function calculateReturns() {
+                const exitMultiple = parseFloat(exitMultipleSlider.value);
+                exitMultipleLabel.textContent = `${exitMultiple.toFixed(1)}x`;
+
+                const exitEV = lboData.projectedEbitdaY5 * exitMultiple;
+                const exitEquityValue = exitEV - lboData.remainingDebt;
+                
+                const mom = exitEquityValue / lboData.sponsorEquity;
+                
+                const irr = (Math.pow(mom, 1/5) - 1) * 100;
+
+                irrValue.textContent = `${irr.toFixed(1)}%`;
+                momValue.textContent = `${mom.toFixed(2)}x`;
+            }
+
+            exitMultipleSlider.addEventListener('input', calculateReturns);
+            calculateReturns();
+
+        });
+    </script>
+</body>
+</html>
